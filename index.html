@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>需求澄清与诊断工作台</title>
+<style>
+  :root{
+    --bg:#eef1f7; --panel:#ffffff; --panel-2:#f4f7fc; --panel-3:#e9eef7;
+    --line:#e0e6f0; --line-2:#cdd6e6;
+    --ink:#16203a; --ink-2:#52607c; --ink-3:#8a96ad;
+    --brand:#3b6ef5; --brand-2:#5b86ff; --brand-ink:#fff;
+    --brand-grad:linear-gradient(135deg,#3b6ef5,#7c5cff);
+    --accent:#7c5cff;
+    --ok:#15a36a; --warn:#d98a00; --danger:#e0483b; --purple:#7c5cff; --teal:#0ea5a4;
+    --radius:14px; --radius-sm:10px;
+    --shadow:0 1px 2px rgba(20,30,60,.05),0 8px 24px rgba(20,30,60,.07);
+    --glass:rgba(255,255,255,.72);
+  }
+  [data-theme="dark"]{
+    --bg:#0a0d16; --panel:rgba(23,29,43,.72); --panel-2:rgba(31,39,56,.6); --panel-3:rgba(41,51,73,.6);
+    --line:rgba(120,140,180,.16); --line-2:rgba(120,140,180,.26);
+    --ink:#eaf0fb; --ink-2:#a8b4cc; --ink-3:#6b7790;
+    --brand:#5b8cff; --brand-2:#8f7bff; --brand-ink:#fff;
+    --brand-grad:linear-gradient(135deg,#5b8cff,#a66bff);
+    --accent:#a66bff;
+    --ok:#3ad18e; --warn:#eaa53c; --danger:#f06a5d; --purple:#a66bff; --teal:#2bd4c4;
+    --shadow:0 2px 6px rgba(0,0,0,.35),0 14px 40px rgba(0,0,0,.42);
+    --glass:rgba(23,29,43,.6);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--ink); font-size:14px; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:
+      radial-gradient(620px 420px at 12% -8%, color-mix(in srgb,var(--brand) 16%,transparent), transparent 60%),
+      radial-gradient(560px 380px at 100% 0%, color-mix(in srgb,var(--purple) 13%,transparent), transparent 60%),
+      radial-gradient(700px 500px at 82% 112%, color-mix(in srgb,var(--teal) 9%,transparent), transparent 60%);
+    opacity:.95;
+  }
+  .app{display:grid; grid-template-columns:236px 1fr; height:100vh; overflow:hidden}
+  /* sidebar */
+  .side{background:var(--glass); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-right:1px solid var(--line); display:flex; flex-direction:column; padding:18px 13px}
+  .brand{display:flex; align-items:center; gap:11px; padding:2px 8px 18px}
+  .brand .logo{width:34px;height:34px;border-radius:10px;background:var(--brand-grad);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px;flex:0 0 auto;box-shadow:0 5px 14px color-mix(in srgb,var(--brand) 40%,transparent)}
+  .brand b{font-size:15px;font-weight:800;letter-spacing:.3px}
+  .brand small{display:block;font-size:10.5px;color:var(--ink-3);font-weight:500;margin-top:1px}
+  .nav{display:flex;flex-direction:column;gap:4px;margin-top:4px}
+  .nav a{display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:9px;color:var(--ink-2);text-decoration:none;font-size:13.5px;cursor:pointer;transition:.15s;position:relative}
+  .nav a:hover{background:var(--panel-2);color:var(--ink)}
+  .nav a.active{background:color-mix(in srgb,var(--brand) 14%,transparent);color:var(--brand);font-weight:700}
+  .nav a.active::before{content:'';position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:3px;background:var(--brand-grad)}
+  .nav .ico{width:20px;text-align:center;opacity:.95;font-size:15px}
+  .side-foot{margin-top:auto;padding:12px 8px 2px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-3);display:flex;flex-direction:column;gap:9px}
+  .side-foot button{background:var(--panel-2);border:1px solid var(--line-2);color:var(--ink-2);border-radius:8px;padding:8px;cursor:pointer;font-size:12.5px;transition:.15s}
+  .side-foot button:hover{background:var(--panel-3);color:var(--ink);border-color:var(--brand)}
+  /* main */
+  .main{display:flex;flex-direction:column;overflow:hidden;position:relative}
+  .topbar{height:58px;flex:0 0 auto;background:var(--glass); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 20px}
+  .topbar h1{font-size:16px;margin:0;font-weight:800;letter-spacing:.2px;flex:0 0 auto;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    background:var(--brand-grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .topbar .title-edit{font-size:15px;font-weight:700;border:1px solid var(--line-2);border-radius:8px;padding:5px 9px;background:var(--panel);color:var(--ink);width:320px;max-width:42%}
+  .topbar .spacer{flex:1}
+  .badge{font-size:11.5px;padding:4px 11px;border-radius:20px;font-weight:700;white-space:nowrap;letter-spacing:.2px}
+  .badge.empty{background:var(--panel-3);color:var(--ink-3)}
+  .badge.done{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+  .badge.edited{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn)}
+  .badge.mid{background:color-mix(in srgb,var(--teal) 16%,transparent);color:var(--teal)}
+  .btn{font-size:13px;border:1px solid var(--line-2);background:var(--panel);color:var(--ink);border-radius:9px;padding:8px 14px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;font-weight:600;transition:.15s;box-shadow:0 1px 2px rgba(20,30,60,.04)}
+  .btn:hover{background:var(--panel-2);border-color:var(--brand);transform:translateY(-1px)}
+  .btn.primary{background:var(--brand-grad);border-color:transparent;color:#fff;font-weight:700;box-shadow:0 4px 14px color-mix(in srgb,var(--brand) 32%,transparent)}
+  .btn.primary:hover{filter:brightness(1.07);box-shadow:0 6px 18px color-mix(in srgb,var(--brand) 42%,transparent)}
+  .btn.primary:disabled,.btn:disabled{opacity:.55;cursor:default;filter:none;transform:none}
+  .btn.ghost{background:transparent}
+  .btn.sm{padding:5px 10px;font-size:12px}
+  .btn.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 40%,var(--line-2))}
+  .btn.danger:hover{background:color-mix(in srgb,var(--danger) 10%,transparent);border-color:var(--danger)}
+  .btn.block{width:100%;justify-content:center;padding:11px}
+  .icon-btn{width:36px;height:36px;border-radius:9px;border:1px solid var(--line-2);background:var(--panel);color:var(--ink-2);cursor:pointer;font-size:16px;transition:.15s}
+  .icon-btn:hover{background:var(--panel-2);color:var(--brand);border-color:var(--brand)}
+  .view{flex:1;overflow:auto;padding:24px}
+  /* list */
+  .list-head{display:flex;flex-direction:column;gap:5px;margin-bottom:24px}
+  .list-head h2{margin:0;font-size:29px;font-weight:850;letter-spacing:.3px;
+    background:var(--brand-grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .list-head .sub{color:var(--ink-3);font-size:13.5px;margin-top:2px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;cursor:pointer;box-shadow:var(--shadow);transition:.16s;position:relative;overflow:hidden}
+  .card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--brand-grad);opacity:0;transition:.16s}
+  .card:hover{transform:translateY(-3px);border-color:var(--brand);box-shadow:0 12px 30px color-mix(in srgb,var(--brand) 22%,transparent)}
+  .card:hover::before{opacity:1}
+  .card h3{margin:0 0 8px;font-size:16px;font-weight:800;letter-spacing:.2px}
+  .card .meta{font-size:12px;color:var(--ink-3);display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .card .meta span{display:inline-flex;align-items:center;gap:4px}
+  .empty-state{text-align:center;padding:80px 20px;color:var(--ink-3)}
+  .empty-state .big{font-size:52px;margin-bottom:12px;opacity:.8}
+  /* analysis layout */
+  .work{display:grid;grid-template-columns:minmax(340px,40%) 1fr;gap:20px;align-items:start}
+  @media(max-width:980px){.work{grid-template-columns:1fr}}
+  .panel{background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  .panel>.ph{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;background:var(--panel-2)}
+  .panel>.ph::before{content:'';width:4px;height:16px;border-radius:3px;background:var(--brand-grad);flex:0 0 auto}
+  .panel>.ph h3{margin:0;font-size:15px;font-weight:800;letter-spacing:.2px}
+  .panel>.ph .hint{margin-left:auto;font-size:12px;color:var(--ink-3)}
+  .panel>.pb{padding:18px}
+  .tabs{display:flex;gap:6px;background:var(--panel-2);padding:5px;border-radius:10px;margin-bottom:16px}
+  .tabs button{flex:1;border:none;background:none;color:var(--ink-2);padding:8px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;transition:.15s}
+  .tabs button:hover{color:var(--brand)}
+  .tabs button.active{background:var(--panel);color:var(--brand);box-shadow:var(--shadow);font-weight:700}
+  textarea,input[type=text]{width:100%;border:1px solid var(--line-2);background:var(--panel-2);border-radius:9px;padding:10px 12px;font:inherit;color:var(--ink);resize:vertical;transition:.15s}
+  textarea:focus,input:focus{outline:none;border-color:var(--brand);background:var(--panel);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 18%,transparent)}
+  /* chat */
+  .chat-box{display:flex;flex-direction:column;gap:11px;min-height:280px;max-height:430px;overflow:auto;padding:4px 2px;margin-bottom:12px}
+  .msg{max-width:88%;padding:10px 14px;border-radius:13px;font-size:13.5px;line-height:1.65;white-space:pre-wrap;word-break:break-word}
+  .msg.ai{background:var(--panel-2);border:1px solid var(--line);border-top-left-radius:4px;align-self:flex-start}
+  .msg.user{background:var(--brand-grad);color:#fff;border-top-right-radius:4px;align-self:flex-end;box-shadow:0 4px 12px color-mix(in srgb,var(--brand) 30%,transparent)}
+  .msg.sys{background:none;color:var(--ink-3);font-size:12px;align-self:center;text-align:center;max-width:100%}
+  .chat-input{display:flex;gap:8px;align-items:flex-end}
+  .chat-input textarea{flex:1;min-height:48px;max-height:120px;font-size:13.5px}
+  .chat-send{flex:0 0 auto;padding:11px 18px}
+  .chat-tip{font-size:12px;color:var(--ink-3);margin-top:8px;line-height:1.6}
+  /* AI memory panel */
+  .mem-panel{margin-top:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel-2);overflow:hidden}
+  .mem-h{display:flex;align-items:center;gap:8px;padding:10px 13px;background:var(--panel-3);border-bottom:1px solid var(--line);font-size:12.5px;font-weight:800;color:var(--ink)}
+  .mem-h .mem-sub{margin-left:auto;font-size:11px;color:var(--ink-3);font-weight:500}
+  .mem-empty{padding:12px 14px;font-size:12px;color:var(--ink-3);line-height:1.7}
+  .mem-sec{padding:10px 14px;border-bottom:1px dashed var(--line);font-size:12.5px;line-height:1.65}
+  .mem-sec:last-child{border-bottom:none}
+  .mem-sec b{display:block;font-size:11.5px;color:var(--brand);margin-bottom:5px;font-weight:700}
+  .mem-sec ul{margin:0;padding-left:18px}
+  .mem-sec li{margin:3px 0}
+  .mem-logic{color:var(--ink-2)}
+  /* form */
+  .qbank{display:flex;flex-direction:column;gap:12px}
+  .qitem{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:11px 13px;transition:.15s}
+  .qitem:focus-within{border-color:var(--brand)}
+  .qitem .q{font-size:12.5px;color:var(--ink-2);font-weight:700;margin-bottom:7px;display:flex;gap:6px;align-items:flex-start}
+  .qitem .q .n{color:var(--brand);font-weight:800;flex:0 0 auto}
+  .qitem textarea{min-height:44px;background:var(--panel);font-size:13px}
+  .analyze-bar{display:flex;gap:10px;align-items:center;margin-top:16px}
+  /* right: steps */
+  .step-block{border:1px solid var(--line);border-radius:13px;margin-bottom:18px;overflow:hidden;background:var(--panel-2)}
+  .step-block>.sh{padding:13px 16px;display:flex;align-items:center;gap:11px;background:var(--panel-3);border-bottom:1px solid var(--line)}
+  .step-block>.sh .num{width:26px;height:26px;border-radius:8px;background:var(--brand-grad);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;box-shadow:0 3px 8px color-mix(in srgb,var(--brand) 30%,transparent)}
+  .step-block>.sh h4{margin:0;font-size:15px;font-weight:800;letter-spacing:.2px}
+  .step-block>.sh .rb-sub{font-size:11.5px;color:var(--ink-3);margin-left:auto}
+  .step-block>.sb{padding:15px 16px}
+  .step-done-tag{font-size:11px;color:var(--ok);font-weight:700}
+  /* question checklist */
+  .qgroup{margin-bottom:6px}
+  .qgroup>.gcat{font-size:12.5px;font-weight:800;color:var(--purple);margin:14px 0 9px;display:flex;align-items:center;gap:9px}
+  .qgroup>.gcat::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+  .qcheck{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px 13px;margin-bottom:9px;transition:.15s}
+  .qcheck.off{opacity:.6}
+  .qcheck:has(input:checked){border-color:var(--brand);background:color-mix(in srgb,var(--brand) 7%,var(--panel))}
+  .qcheck .qrow{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .qcheck input[type=checkbox]{width:17px;height:17px;margin-top:2px;accent-color:var(--brand);cursor:pointer;flex:0 0 auto}
+  .qcheck .qtext{font-size:13px;font-weight:700;line-height:1.5}
+  .qcheck .qwhy{font-size:11.5px;color:var(--ink-3);margin-top:5px;line-height:1.55}
+  .qcheck .qans{margin-top:10px}
+  .qcheck .qans textarea{min-height:42px;font-size:13px}
+  .qcheck .qans .ans-lb{font-size:11px;color:var(--brand);font-weight:700;margin-bottom:5px}
+  .qtools{display:flex;gap:8px;margin:4px 0 10px}
+  .qtools button{font-size:12px;color:var(--ink-2);background:var(--panel);border:1px solid var(--line-2);border-radius:7px;padding:5px 11px;cursor:pointer;transition:.15s}
+  .qtools button:hover{color:var(--brand);border-color:var(--brand)}
+  /* results */
+  .result-empty{padding:32px 20px;text-align:center;color:var(--ink-3);font-size:13px;line-height:1.8}
+  .rblock{border:1px solid var(--line);border-radius:12px;margin-bottom:14px;overflow:hidden;background:var(--panel-2)}
+  .rblock>.rh{padding:11px 15px;display:flex;align-items:center;gap:10px;background:var(--panel-3);border-bottom:1px solid var(--line)}
+  .rblock>.rh .num{width:24px;height:24px;border-radius:7px;background:var(--brand-grad);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;box-shadow:0 3px 8px color-mix(in srgb,var(--brand) 28%,transparent)}
+  .rblock>.rh h4{margin:0;font-size:14.5px;font-weight:800;letter-spacing:.2px}
+  .rblock>.rh .rb-sub{font-size:11.5px;color:var(--ink-3);margin-left:auto}
+  .rblock>.rb{padding:14px 15px}
+  .list-edit{width:100%;min-height:92px;border:1px solid transparent;background:transparent;font:inherit;color:var(--ink);resize:vertical;line-height:1.75;border-radius:7px;padding:4px 5px}
+  .list-edit:focus{outline:none;border-color:var(--brand);background:var(--panel);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 16%,transparent)}
+  .logic-edit{min-height:128px;line-height:1.75}
+  .bn-row{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;padding:11px 0;border-bottom:1px dashed var(--line)}
+  .bn-row:last-child{border-bottom:none}
+  .bn-rank{width:28px;height:28px;border-radius:50%;background:var(--brand-grad);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;margin-top:2px;box-shadow:0 3px 8px color-mix(in srgb,var(--brand) 26%,transparent)}
+  .bn-fields{display:flex;flex-direction:column;gap:7px}
+  .bn-fields .lbl{font-size:11px;color:var(--ink-3);font-weight:700}
+  .bn-fields textarea{min-height:36px;background:var(--panel);font-size:12.5px}
+  .bn-del{margin-left:auto;color:var(--danger);background:none;border:none;cursor:pointer;font-size:12px}
+  .add-bn{margin-top:8px;font-size:12.5px;color:var(--brand);background:none;border:1px dashed var(--line-2);border-radius:8px;padding:8px;width:100%;cursor:pointer;transition:.15s}
+  .add-bn:hover{background:var(--panel-3);border-color:var(--brand)}
+  .regen{font-size:11.5px;color:var(--brand);background:none;border:1px solid var(--line-2);border-radius:7px;padding:4px 9px;cursor:pointer;transition:.15s}
+  .regen:hover{background:var(--panel-3);border-color:var(--brand)}
+  /* modal */
+  .mask{position:fixed;inset:0;background:rgba(12,16,28,.5);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .mask.show{display:flex}
+  .modal{background:var(--panel);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.4);width:100%;max-width:500px;max-height:88vh;overflow:auto}
+  .modal .mh{padding:17px 20px;border-bottom:1px solid var(--line);font-weight:800;font-size:16px;display:flex;align-items:center}
+  .modal .mh .x{margin-left:auto;background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink-3);line-height:1}
+  .modal .mb{padding:20px}
+  .modal .mf{padding:15px 20px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end}
+  .field{margin-bottom:15px}
+  .field label{display:block;font-size:12.5px;color:var(--ink-2);font-weight:700;margin-bottom:6px}
+  .field .help{font-size:11.5px;color:var(--ink-3);margin-top:5px;line-height:1.55}
+  .apistat{font-size:12px;margin-top:6px}
+  .apistat.ok{color:var(--ok)} .apistat.err{color:var(--danger)}
+  .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:11px;font-size:13px;box-shadow:var(--shadow);opacity:0;transition:opacity .2s,transform .2s;z-index:99;pointer-events:none;font-weight:600}
+  .toast.show{opacity:.96;transform:translateX(-50%) translateY(-4px)}
+  .spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;display:inline-block;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .hintbar{font-size:12px;color:var(--ink-2);background:var(--panel-2);border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:9px;padding:10px 13px;margin-bottom:15px;display:flex;gap:8px;align-items:center;line-height:1.6}
+  .busy-sts{font-size:12px;color:var(--ink-3);margin-top:8px;min-height:16px}
+  /* diagrams & digest */
+  .diag-status{font-size:12.5px;font-weight:700;border-radius:9px;padding:10px 13px;margin-bottom:13px;line-height:1.6}
+  .diag-status.ok{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
+  .diag-status.wait{background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--warn)}
+  .diag-wrap{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:13px;overflow-x:auto}
+  .diag-title{font-size:13px;font-weight:800;color:var(--ink-2);margin-bottom:10px;display:flex;align-items:center;gap:7px}
+  .diag-title::before{content:'';width:4px;height:14px;border-radius:3px;background:var(--brand-grad);flex:0 0 auto}
+  .diag-confirm textarea{min-height:68px;font-size:13px}
+  .diag-btns{display:flex;gap:9px;margin-top:9px;flex-wrap:wrap}
+  .diag-hist{font-size:12px;color:var(--ink-3);background:var(--panel);border:1px dashed var(--line-2);border-radius:9px;padding:9px 13px;margin-bottom:11px;line-height:1.7}
+  .diag-hist b{display:block;color:var(--ink-2);margin-bottom:4px;font-weight:700}
+  /* outline bar */
+  .outline-bar{display:flex;align-items:stretch;gap:0;margin:14px 0 18px;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .ob-step{flex:1;display:flex;align-items:center;gap:11px;padding:12px 15px;position:relative}
+  .ob-step:not(:last-child)::after{content:'';position:absolute;right:0;top:13px;bottom:13px;width:1px;background:var(--line)}
+  .ob-n{width:27px;height:27px;border-radius:50%;background:var(--panel-3);color:var(--ink-3);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;border:1px solid var(--line-2)}
+  .ob-step.done .ob-n{background:var(--ok);color:#fff;border-color:transparent;box-shadow:0 3px 8px color-mix(in srgb,var(--ok) 30%,transparent)}
+  .ob-t{font-size:13px;font-weight:700;color:var(--ink);line-height:1.25}
+  .ob-s{font-size:11px;color:var(--ink-3);margin-top:1px}
+  .ob-step.done .ob-t{color:var(--ok)}
+  .ob-line{display:none}
+  @media(max-width:760px){.outline-bar{flex-wrap:wrap}.ob-step{flex:1 1 50%}.ob-step:not(:last-child)::after{display:none}}
+  @media print{
+    .side,.topbar,.tabs,.analyze-bar,.regen,.add-bn,.bn-del,.icon-btn,.nav,.side-foot,.qtools,.qcheck input[type=checkbox]{display:none!important}
+    .app{display:block;height:auto}
+    .view{padding:0}
+    .work{grid-template-columns:1fr;gap:0}
+    .panel,.rblock,.step-block,.qcheck{box-shadow:none;border:1px solid #ccc}
+    body::before{display:none}
+    .list-edit,.logic-edit,.bn-fields textarea,.qcheck .qans textarea{border:none!important;background:none!important;resize:none}
+    .qcheck.off{opacity:1}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="logo">诊</div>
+      <div><b>需求诊断台</b><small>聊一聊 · 整合 · 出报告 · 画图确认</small></div>
+    </div>
+    <nav class="nav" id="nav">
+      <a data-action="go-list"><span class="ico">▤</span> 分析列表</a>
+    </nav>
+    <div class="side-foot">
+      <button data-action="new-analysis">＋ 新建分析</button>
+      <button data-action="toggle-theme" id="theme-btn">🌓 切换主题</button>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar" id="topbar"></div>
+    <div class="view" id="view"></div>
+  </main>
+</div>
+
+<div class="mask" id="mask">
+  <div class="modal" id="modal"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  const LS_KEY='icd_v3', API_KEY='icd_api_v2', NOSEED='icd_noseed_v3';
+  const MOCK = new URLSearchParams(location.search).get('mock')==='1';
+  const $=(s,r)=> (r||document).querySelector(s);
+  const $$=(s,r)=> Array.from((r||document).querySelectorAll(s));
+  const esc=s=> String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const uid=p=> (p||'a')+'_'+Math.random().toString(36).slice(2,9);
+  const today=()=> new Date().toISOString().slice(0,10);
+
+  // 客户自己填的问题（小白看得懂的说法）
+  const FORM_QS=[
+    '您是做什么的？这次想解决的事，和哪块业务有关？',
+    '用一句话说说：您最想达成什么目标？（做完之后，理想中是什么样子？）',
+    '现在具体遇到了什么麻烦事？让您头疼的是哪些？',
+    '您觉得这件事最难、最卡的地方在哪？',
+    '现在这件事是怎么一步步做的？大概说说流程就行',
+    '有哪些限制条件？（比如预算、人手、时间、规定、技术）',
+    '您希望我们具体帮您做什么？',
+    '之前试过什么办法？为什么没解决？',
+    '什么时候要完成？做到什么程度您觉得算满意？'
+  ];
+
+  // ---------- storage ----------
+  function load(){
+    try{
+      const raw=localStorage.getItem(LS_KEY);
+      if(raw){ const d=JSON.parse(raw); if(d&&d.analyses){ d.analyses.forEach(migrate); return d; } }
+    }catch(e){}
+    return {theme:'light', analyses:[]};
+  }
+  function migrate(a){
+    if(!Array.isArray(a.chat)) a.chat=[];
+    if(!Array.isArray(a.form)) a.form=FORM_QS.map(q=>({q,a:''}));
+    if(!Array.isArray(a.questions)) a.questions=[];
+    if(a._tab!=='chat'&&a._tab!=='form') a._tab='chat';
+    if(!a.memory) a.memory={known:[],open:[],logic:'',ts:null};
+    if(!a.digest) a.digest=null;
+    if(!a.diagrams) a.diagrams=null;
+  }
+  function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(db)); }catch(e){ toast('⚠ 本地存储不可用，本次改动刷新后会丢（建议用本地服务器打开）'); } }
+  function loadApi(){ try{ return JSON.parse(localStorage.getItem(API_KEY))||{}; }catch(e){ return {}; } }
+  function saveApi(){ try{ localStorage.setItem(API_KEY, JSON.stringify(api)); }catch(e){} }
+
+  let db=load();
+  let api=loadApi();
+
+  // ---------- helpers ----------
+  function parseHash(){
+    const h=location.hash.replace(/^#\/?/,'');
+    if(!h) return {name:'list'};
+    const m=h.match(/^a\/([^/]+)$/);
+    if(m) return {name:'analysis', id:m[1]};
+    return {name:'list'};
+  }
+  function current(){ const r=parseHash(); return db.analyses.find(a=>a.id===r.id); }
+  function go(h){ location.hash=h; }
+  function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2200); }
+
+  const STATUS={empty:{c:'empty',t:'待梳理'},mid:{c:'mid',t:'已选问题'},done:{c:'done',t:'已梳理'},edited:{c:'edited',t:'已编辑'}};
+
+  // ---------- demo ----------
+  function demoAnalysis(){
+    const a={
+      id:uid(), name:'示例：客户提案流程总卡在最后一步',
+      createdAt:today(), updatedAt:today(), status:'done', _tab:'chat',
+      chat:[
+        {role:'assistant',content:'您好！我是需求梳理助手。您用大白话说说：最近有什么事让您头疼、想解决掉的？'},
+        {role:'user',content:'我们公司给大客户做方案提案，本来 3 周该搞定，经常拖到 5、6 周。'},
+        {role:'assistant',content:'明白了，周期拖太长。那具体是卡在哪几个环节？是中间某一步特别慢，还是前面就慢？'},
+        {role:'user',content:'主要卡在内部评审和法务审核。没人催就一直挂着，最后都是 deadline 前赶工。'},
+        {role:'assistant',content:'懂了。还有个情况我想确认：听说客户那边的对接人经常换？这对你们影响大吗？'},
+        {role:'user',content:'对，采购经理老换人，每次都得重新讲一遍方案。'}
+      ],
+      memory:{
+        known:['提案本应 3 周完成，经常拖到 5~6 周','主要卡在内部评审和法务审核，没人催办就一直挂着','超 50 万的评审没有明确的拍板人','客户的采购经理频繁更换，每次都要重新讲方案'],
+        open:['评审环节平均滞留多少天','现在靠什么推进流程（系统 / 邮件 / 口头催）','法务审核的标准是否明确'],
+        logic:'提案是「接需求→做方案→内部评审→法务审核→交付」的流水线：前端做方案没问题，卡点集中在中后段——评审和法务是「别人部门的事」，没有专人推动、没有时限、没有拍板人，活儿全堆在末端；再叠加客户换人导致前端返工，两头一夹只能 deadline 前赶工。',
+        ts:Date.now()
+      },
+      form:FORM_QS.map((q,i)=>{
+        const ans=['','提案周期控制在 3 周内','','没人负责催办，法务排队不知道排到哪','','超 50 万要评审，但谁拍板没定','','',''];
+        return {q, a:ans[i]||''};
+      }),
+      digest:{
+        text:'- 目标：提案周期稳定在 3 周内（聊天与自填表信息合并）\n- 卡点集中在内部评审与法务审核：没人催办、超 50 万无明确拍板人（两路信息互相印证）\n- 客户采购经理更换频繁 → 方案要重讲 → 前端反复返工\n- 约束：超 50 万必须评审，但谁拍板没有成文规定\n\n【信息缺口，待补】\n- 评审/法务环节平均滞留多少天，没有统计',
+        ts:Date.now()
+      },
+      diagrams:{
+        flow:{title:'客户提案流程（现状）',steps:[
+          {name:'接需求',who:'商务',does:'记录客户要求',pain:false,note:''},
+          {name:'做方案',who:'方案组',does:'写提案初稿',pain:false,note:''},
+          {name:'内部评审',who:'组长',does:'通读给意见',pain:true,note:'没人催就一直挂'},
+          {name:'法务审核',who:'法务',does:'逐条审条款',pain:true,note:'排队不知排到哪'},
+          {name:'交付客户',who:'商务',does:'提案讲方案',pain:false,note:''}
+        ]},
+        logic:{
+          core:'提案是一条流水线：前端「干活」没问题，卡全卡在中后段的「过检」——过检是别人部门的事，没人牵头、没人拍板',
+          chains:[
+            ['评审/法务是别的部门的事','没人牵头催办','审核一挂好几天'],
+            ['超50万谁拍板没成文','没人敢签字','评审长期挂着不动'],
+            ['客户采购经理老换人','方案要重讲一遍','前端反复返工']
+          ],
+          converges:'全部堆到 deadline 前赶工，周期从 3 周拖到 5~6 周'
+        },
+        confirmed:true,
+        history:[{text:'法务那步补一下：是法务人手不够才排队的，不是故意压着',ts:Date.now()-3600e3}],
+        ts:Date.now()
+      },
+      questions:null, // 下面生成
+      result:{
+        needs:['提案周期控制在 3 周以内（现在经常拖到 5~6 周）','客户对接人换人时，方案信息不丢、不用每次重讲','每个环节谁负责、谁拍板，清清楚楚'],
+        problems:['内部评审和法务审核没人催办，一挂就是好几天','超过 50 万的评审，谁拍板没定，没人敢签字','对接人一换，之前的沟通全部重来'],
+        difficulties:['评审、法务都是别的部门，自己催不动也不好意思催','拍板规则只在组长嘴里，没写下来，大家不敢担责','客户那边换人不由我们控制'],
+        logic:'提案这件事其实是一条流水线：接需求 → 做方案 → 内部评审 → 法务审核 → 交付。现在前段（做方案）没问题，问题全出在后段——评审和法务是「别人部门的事」，没人牵头、没人催、没人拍板，就像流水线末端没人管，活儿全堆在那里。再加上客户换人导致前端反复返工，两头一夹，只能靠赶工硬交。',
+        bottlenecks:[
+          {point:'评审和法务审核没有专人负责、没人催办',why:'这是拖到 5~6 周的最主要原因，不解决超时还会反复',suggest:'指定一个流程负责人，专门盯评审和法务的进度'},
+          {point:'超 50 万的评审谁拍板不明确',why:'没人敢签字，评审就一直挂着',suggest:'立项时就写清楚拍板人是谁，写进流程规则'},
+          {point:'客户对接人换人导致重复沟通',why:'每次换人都要重讲一遍，白白多花时间',suggest:'把方案做成一份标准底稿，换人时直接给对方看'}
+        ]
+      }
+    };
+    a.questions=demoQuestions();
+    return a;
+  }
+  function demoQuestions(){
+    let n=0;
+    const mk=(cat,text,why,picked,answer)=>({id:'q'+(++n),cat,text,why,picked:!!picked,answer:answer||''});
+    return [
+      mk('目标与需求','这件事做完，您最希望达到的效果是什么？','确认真正的目标，避免做偏','是','提案周期稳定在 3 周内，不用天天催'),
+      mk('目标与需求','除了快，还有什么是您在意的？（比如质量、成本、客户满意度）','全面了解需求，不只盯着一个点','是','客户别再投诉方案改来改去'),
+      mk('问题与难点','您觉得问题出在哪个环节？是人的问题还是流程的问题？','定位卡点的性质，决定后面怎么破','是','流程问题，没人牵头也没人拍板'),
+      mk('问题与难点','哪个环节浪费的时间最多？大概浪费几天？','量化影响，判断优先级','是','评审+法务，平均多花 2~3 周'),
+      mk('现状与流程','现在这件事从头到尾是怎么走的？每一步谁负责？','画出现状流程，找出断点','是','方案组做完 → 组长看 → 发法务，然后就没有然后了'),
+      mk('现状与流程','评审和法务审核现在靠谁推进？有明确时限吗？','确认是否缺少推动机制','是','没人推进，全靠催，没有时限'),
+      mk('约束与验收','这件事必须在什么时候完成？有什么硬性时间点？','确认时间约束','否',''),
+      mk('约束与验收','有哪些规定或制度是不能碰的？（比如财务、合规）','确认硬约束，建议才可落地','否',''),
+      mk('约束与验收','做到什么程度，您会觉得「这事成了」？','明确验收标准','否','')
+    ];
+  }
+
+  function ensureSeed(){
+    if(db.analyses.length) return;
+    if(localStorage.getItem(NOSEED)) return;
+    db.analyses.push(demoAnalysis());
+    save();
+  }
+
+  // ---------- LLM ----------
+  async function callMsgs(messages){
+    if(MOCK) return null;
+    if(!api.key || !api.baseUrl){ throw new Error('NOKEY'); }
+    const url=(api.baseUrl.replace(/\/+$/,'')+'/chat/completions');
+    const body={ model:api.model||'deepseek-chat', messages, temperature:0.4, stream:false };
+    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+api.key},body:JSON.stringify(body)});
+    if(!res.ok){ const t=await res.text().catch(()=> ''); throw new Error('API '+res.status+': '+t.slice(0,200)); }
+    const data=await res.json();
+    return (data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||'';
+  }
+
+  // 聊天 system prompt：有记忆、有判断力的访谈专家
+  function CHAT_SYS(){
+    return '你是一位经验丰富的需求梳理专家，正在和一位客户（可能不懂专业术语）对话，帮他把需求和问题彻底澄清。你拥有完整的对话记忆和判断力，规则：\n1) 每轮回复前，先回顾【全部】历史对话：哪些已确认、哪些前后矛盾、哪些还缺失；\n2) 每次只问「当前最有价值」的一个问题——优先问信息缺口最大、对诊断最关键的点，绝不重复已回答过的内容；如果客户前后说法有矛盾，先指出来向客户求证；\n3) 对方说的话先用一句话复述你理解的重点（"您的意思是…"），再追问；用大白话，一次回复 1~3 句，不堆术语；\n4) 你的任务是澄清信息，不给解决方案、不下最终结论；\n5) 当你判断关键信息已基本齐了（目标、问题、难点、现状流程、约束、验收标准都有着落），在回复末尾加一句：「（信息差不多了，可以点右边的「生成问题清单」了）」。';
+  }
+
+  // 记忆模块 system prompt：从全部对话中梳理逻辑与需求
+  function MEM_SYS(){
+    return '你是需求分析系统的记忆模块。你会收到客户与助手的完整聊天记录，请基于全部对话输出当前的理解状态。\n只输出一个 JSON 对象（不要解释、不要代码块标记），结构：\n{"known":["已从对话中确认的信息，每条一句话，要具体——数字、环节、人、规则等细节必须保留"],\n"open":["还没弄清、下一步最该确认的问题，按重要性从高到低，最多 5 条"],\n"logic":"到目前对客户这件事的初步逻辑判断，2~4 句：这事怎么运转、问题可能出在哪、各环节什么关系"}\n要求：只基于聊天记录，不要编造；信息不足时 known 少写几条也没关系。';
+  }
+
+  // 第0步：信息整合（聊天 + 自填表 → 合并摘要）
+  function MERGE_SYS(){
+    return '你是需求分析系统的信息整合模块。你会收到两路信息：客户与助手的聊天记录、客户自填的需求表。请把两路信息**总结合并**成一份统一的《需求信息摘要》，后续出题、报告、画图都以这份摘要为准。\n只输出一个 JSON 对象（不要解释、不要代码块标记），结构：\n{"summary":["合并后的信息点，每条一句话、大白话；按主题归并（目标/问题/流程/约束），两路信息重复的只保留一条，互相矛盾的标注「（⚠两处说法不一致，待确认）」"],\n"gaps":["两路信息合起来之后仍然缺失的关键信息，最多 4 条，没有就给空数组"]}\n要求：1)融合而非罗列——不要分成「聊天说的」和「表格填的」两摊；2)具体细节（数字、环节、人、规则）必须保留；3)只基于原文，不编造。';
+  }
+
+  // 第4步：流程图与底层逻辑图
+  function DIAGRAM_SYS(){
+    return '你是流程建模专家。基于给定的客户需求信息，产出两张图的数据：①现状工作流程图 ②项目运行底层逻辑图（因果机制）。\n只输出一个 JSON 对象（不要解释、不要代码块标记），结构：\n{"flow":{"title":"XX流程（现状）","steps":[{"name":"环节名(2~6个字)","who":"谁负责(短)","does":"这一步做什么(一句话,短)","pain":false,"note":"卡点原因，pain为true时必填且要短，否则留空"}]},\n"logic":{"core":"一句话讲清这套体系的运转核心（大白话，1~2句）","chains":[["起因","导致什么","再导致什么"]],"converges":"所有因果链最终汇成的同一个后果（一句话）"}}\n要求：\n1) flow.steps 按真实执行顺序 5~8 个环节，pain=true 标出卡点环节（2~3 个，依据信息里的「卡」「慢」「没人管」等线索）；\n2) logic.chains 给 2~4 条独立因果链，每条 2~4 个节点，节点文字每段不超过 12 个字（要显示在图里）；\n3) 全部大白话，外行看得懂；只基于给定信息，不足处不要编。';
+  }
+
+  // 第4步：按自然语言意见改图
+  function DIAGRAM_REVISE_SYS(){
+    return '你是流程建模专家。下面是你之前为客户画的两张图（JSON），客户用大白话提出了修改意见。请严格按意见修改，输出**完整的**修改后 JSON（结构与原来完全一致：flow + logic）。\n要求：1)只改意见涉及的部分，其余保持不变；2)客户说的如果和原信息矛盾，以客户说的为准；3)节点文字保持简短（每段≤12字）；4)只输出 JSON，不要解释。';
+  }
+
+  // 第2步：生成问题清单
+  function QLIST_SYS(){
+    return '你是需求诊断专家。你会收到客户与助手的聊天记录、以及客户自填的需求表。请生成一份「确认问题清单」帮助进一步澄清需求。\n要求：\n1) 只输出一个 JSON 对象（不要解释、不要代码块），结构：{"groups":[{"cat":"分类名","questions":[{"text":"问题","why":"为什么要问这个问题（用大白话，让外行也看得懂）"}]}]}\n2) 分 3~5 个分类（如：目标与需求 / 问题与难点 / 现状与流程 / 约束与验收 / 期望与验收），总共 8~14 个问题；\n3) 问题要全面、清晰、客户（小白）一看就懂，避免专业黑话；\n4) 已经从聊天/表格中明确的信息，不要再重复问，但可以列出「用于确认」的问题；\n5) 信息不足的地方优先补问。';
+  }
+
+  // 第2步：大白话梳理总结
+  function SUMMARY_SYS(){
+    return '你是一名资深的需求澄清与问题诊断专家。你会收到：客户的聊天记录、自填表、以及客户勾选并回答的确认问题。请生成一份**大白话**的梳理总结——读的人可能是完全的外行，必须一看就懂。\n请严格只输出一个 JSON 对象（不要任何多余解释、不要代码块标记），结构如下：\n{\n  "needs":["客户真正想要什么，每条一句话，大白话"],\n  "problems":["客户需要解决的具体问题，每条一句话"],\n  "difficulties":["难在哪/为什么一直没解决，每条一句话"],\n  "logic":"3-6句话，把客户这件事的底层逻辑讲清楚：这事怎么运转、各环节什么关系、为什么现在会卡住。像讲给外行听故事一样，用比喻也可以，但必须准确",\n  "bottlenecks":[{"point":"卡点描述","why":"为什么这是卡点/不解决会怎样（大白话）","suggest":"建议怎么破，一句话，说人话"}]\n}\n要求：1)只基于提供的信息，信息不足写「信息不足，待确认」，不要编造；2)bottlenecks 按优先级从高到低排序；3)全程大白话，不用咨询黑话；4)融合聊天、表格、问答三部分信息，交叉印证。';
+  }
+
+  // 仅聊天记录文本（供记忆模块用）
+  function chatText(a){
+    let s='';
+    a.chat.forEach(m=>{ if(m.role==='user'||m.role==='assistant') s+=(m.role==='user'?'客户：':'助手：')+m.content+'\n'; });
+    return s.trim();
+  }
+
+  // 记忆模块：每轮对话后，让 AI 基于全部历史对话梳理「已确认/待确认/初步逻辑」
+  let memBusy=false;
+  async function updateMemory(a){
+    if(memBusy) return;
+    const txt=chatText(a);
+    if(!txt || a.chat.filter(m=>m.role==='user').length<1) return;
+    memBusy=true;
+    try{
+      let mem;
+      if(MOCK){
+        await new Promise(r=>setTimeout(r,300));
+        mem=mockMemory(a);
+      } else {
+        const out=await callMsgs([{role:'system',content:MEM_SYS()},{role:'user',content:'【完整聊天记录】\n'+txt+'\n\n请按系统要求输出 JSON。'}]);
+        mem=extractJSON(out);
+      }
+      if(mem&&(mem.known||mem.open||mem.logic)){
+        a.memory={known:Array.isArray(mem.known)?mem.known:[],open:Array.isArray(mem.open)?mem.open:[],logic:String(mem.logic||''),ts:Date.now()};
+        save();
+        if(current()&&current().id===a.id) refreshRight(a);
+      }
+    }catch(e){ /* 记忆更新失败不打断聊天 */ }
+    finally{ memBusy=false; }
+  }
+  function mockMemory(a){
+    const n=a.chat.filter(m=>m.role==='user').length;
+    const all=['客户在给大客户做方案提案','提案本应 3 周完成，经常拖到 5~6 周','卡点在内部评审和法务审核，没人催办就一直挂着','超 50 万的评审没有明确拍板人','客户的采购经理频繁更换，每次都要重讲方案'];
+    return {
+      known:all.slice(0,Math.min(1+n,all.length)),
+      open:n>=3?['评审环节平均滞留多少天','现在靠什么推进流程（系统/邮件/口头）']:['问题主要出在哪个环节','现在的流程是怎么走的'],
+      logic:'提案是「接需求→做方案→评审→法务→交付」的流水线，前端做方案没问题，卡点集中在中后段的评审/法务推动机制上。'
+    };
+  }
+
+  // 记忆面板 HTML
+  function memoryHTML(a){
+    const m=a.memory||{known:[],open:[],logic:''};
+    const has=(m.known&&m.known.length)||(m.open&&m.open.length)||(m.logic&&m.logic.trim());
+    let h='<div class="mem-panel"><div class="mem-h"><span>🧠 AI 的实时记忆</span>'+
+      '<span class="mem-sub">'+(m.ts?('更新于 '+new Date(m.ts).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})):'随对话自动梳理')+'</span>'+
+      '<button class="regen" data-action="mem-regen">↻ 重新梳理</button></div>';
+    if(!has){
+      h+='<div class="mem-empty">聊几句之后，AI 会把「已确认的信息 / 还需确认的问题 / 初步逻辑判断」自动整理在这里——它记住的是这一轮的全部对话。</div>';
+    } else {
+      if(m.known&&m.known.length){ h+='<div class="mem-sec"><b>✓ 已确认的信息</b><ul>'+m.known.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>'; }
+      if(m.open&&m.open.length){ h+='<div class="mem-sec"><b>? 还需确认（AI 下一步会追问）</b><ul>'+m.open.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>'; }
+      if(m.logic&&m.logic.trim()){ h+='<div class="mem-sec"><b>≈ 初步逻辑判断</b><div class="mem-logic">'+esc(m.logic)+'</div></div>'; }
+    }
+    h+='</div>';
+    return h;
+  }
+
+  // 原始素材（仅聊天+表单，供信息整合用）
+  function rawMaterialOf(a){ let s='';
+    if(a.chat.length){
+      s+='【和客户的聊天记录】\n';
+      a.chat.forEach(m=>{ if(m.role==='user'||m.role==='assistant') s+=(m.role==='user'?'客户：':'助手：')+m.content+'\n'; });
+      s+='\n';
+    }
+    const filled=a.form.filter(x=>x.a&&x.a.trim());
+    if(filled.length){
+      s+='【客户自填的需求表】\n';
+      filled.forEach(x=> s+='· '+x.q+'\n  答：'+x.a.trim()+'\n');
+      s+='\n';
+    }
+    return s.trim();
+  }
+  function materialOf(a){
+    // 优先用「AI 整合后的摘要」（聊天+表单已总结合并）；没有才退回原始记录
+    let s='';
+    if(a.digest&&a.digest.text){
+      s+='【需求信息摘要（由聊天记录与客户自填表经 AI 总结合并而成，以此为准）】\n'+a.digest.text+'\n\n';
+    } else {
+      const raw=rawMaterialOf(a);
+      if(raw) s+=raw+'\n\n';
+    }
+    const picked=a.questions?a.questions.filter(q=>q.picked&&q.answer&&q.answer.trim()):[];
+    if(picked.length){
+      s+='【客户勾选并回答的确认问题】\n';
+      picked.forEach(q=> s+='· '+q.text+'\n  答：'+q.answer.trim()+'\n');
+      s+='\n';
+    }
+    return s.trim()||'（客户还没有提供任何信息）';
+  }
+  function extractJSON(text){
+    if(!text) return null;
+    const i=text.indexOf('{'), j=text.lastIndexOf('}');
+    if(i<0||j<0||j<i) return null;
+    try{ return JSON.parse(text.slice(i,j+1)); }catch(e){ return null; }
+  }
+
+  // mock：聊天回复
+  const MOCK_CHAT=[
+    '收到。那这个问题具体表现在哪？能不能举一个最近发生的例子？',
+    '明白了。您觉得这里面最难搞、最卡的是哪个点？',
+    '懂了。现在这件事你们平时是怎么一步步做的？',
+    '了解。这件事有什么限制吗？比如时间、预算、人手这些。',
+    '好。那您希望我们具体帮您做什么？做到什么程度您觉得算解决了？',
+    '（信息差不多了，可以点右边的「生成问题清单」了）'
+  ];
+  function mockChatReply(a){
+    const n=a.chat.filter(m=>m.role==='user').length;
+    return MOCK_CHAT[Math.min(n-1,MOCK_CHAT.length-1)]||MOCK_CHAT[0];
+  }
+  // mock：问题清单
+  function mockQuestions(){
+    const raw=[
+      ['目标与需求','这件事做完，您最希望达到的效果是什么？','先确认真正的目标，避免后面做偏'],
+      ['目标与需求','除了主要目标，还有什么是您在意的？（质量、成本、体验等）','全面了解需求，不只盯一个点'],
+      ['问题与难点','您觉得问题出在哪个环节？是人的问题还是流程的问题？','判断卡点性质，决定从哪里破局'],
+      ['问题与难点','哪个环节浪费的时间/钱最多？大概损失多少？','量化影响，才能排出优先级'],
+      ['问题与难点','有没有试过自己解决？为什么没成？','避免重复走已经走不通的路'],
+      ['现状与流程','现在这件事从头到尾是怎么走的？每一步谁负责？','画出现状流程，找出断在哪里'],
+      ['现状与流程','出问题的时候，一般是谁来拍板、谁来协调？','确认有没有人兜底，责任是否清晰'],
+      ['约束与验收','这件事必须在什么时候完成？有什么硬性时间点？','确认时间约束，建议才可执行'],
+      ['约束与验收','有哪些规定或制度是不能碰的？（预算、合规等）','确认硬约束，避免建议落不了地'],
+      ['约束与验收','做到什么程度，您会觉得「这事成了」？','明确验收标准，做完有据可查']
+    ];
+    return raw.map((r,i)=>({id:'q'+(i+1),cat:r[0],text:r[1],why:r[2],picked:false,answer:''}));
+  }
+  // mock：总结
+  function mockSummary(a){
+    const src=materialOf(a);
+    if(src==='（客户还没有提供任何信息）') return {needs:['（请先在左侧和AI聊几句，或填一下需求表）'],problems:['（信息不足）'],difficulties:['（信息不足）'],logic:'（信息不足，待确认）',bottlenecks:[{point:'（信息不足）',why:'',suggest:''}]};
+    return {
+      needs:['把客户最关心的目标（快、稳、不返工）落实成可衡量的结果','减少重复沟通和信息丢失','每个环节有人负责、有人拍板'],
+      problems:['关键环节没人推进，靠人盯、靠催','拍板规则不清，事情挂起无人决策','外部变动（换人、换需求）没有兜底机制'],
+      difficulties:['跨部门协作，互相都当「别人家的事」','规则没写下来，大家不敢担责','客户侧的变化不可控'],
+      logic:'客户这件事就像一条流水线：接活 → 干活 → 过检 → 交付。现在「干活」这一段没问题，卡全卡在「过检」——过检是别人部门的活，没人牵头、没人催、没人签字，活儿就堆在末端。同时前端一有变动（比如换对接人）就得返工，两头一夹，最后只能赶工硬交。这就是为什么「越到后面越慢、越到 deadline 越慌」。',
+      bottlenecks:[
+        {point:'关键环节没人负责、没人催办',why:'这是拖延的最主要原因，不解决还会反复发生',suggest:'指定一个专人从头盯到尾'},
+        {point:'谁拍板不明确',why:'没人敢签字，事情就一直挂着',suggest:'开始时就写清楚谁说了算'},
+        {point:'换人就要从头再来',why:'每次变动都白花一遍时间',suggest:'把过程沉淀成一份大家都能看的底稿'}
+      ]
+    };
+  }
+
+  // mock：信息整合摘要
+  function mockDigest(a){
+    const src=rawMaterialOf(a);
+    if(!src) return null;
+    return {
+      summary:['客户在做大客户方案提案，想把周期稳定在 3 周内（聊天与自填表信息已合并）','卡点集中在内部评审与法务审核：没人催办、超 50 万无明确拍板人（两路信息互相印证）','客户采购经理更换频繁 → 方案要重讲 → 前端反复返工','约束：超 50 万必须评审，但谁拍板没有成文规定'],
+      gaps:['评审/法务环节平均滞留多少天，没有统计']
+    };
+  }
+  // mock：流程图与逻辑图
+  function mockDiagrams(){
+    return {
+      flow:{title:'工作流程（现状·演示）',steps:[
+        {name:'接需求',who:'商务',does:'记录客户要求',pain:false,note:''},
+        {name:'做方案',who:'方案组',does:'写提案初稿',pain:false,note:''},
+        {name:'内部评审',who:'组长',does:'通读给意见',pain:true,note:'没人催就一直挂'},
+        {name:'法务审核',who:'法务',does:'逐条审条款',pain:true,note:'排队不知排到哪'},
+        {name:'交付客户',who:'商务',does:'提案讲方案',pain:false,note:''}
+      ]},
+      logic:{
+        core:'前端「干活」没问题，卡全卡在中后段的「过检」——过检是别人部门的事，没人牵头、没人拍板（演示数据）',
+        chains:[
+          ['评审/法务是别人的事','没人牵头催办','审核一挂好几天'],
+          ['超50万谁拍板没成文','没人敢签字','评审长期不动'],
+          ['客户对接人老换','方案要重讲','前端反复返工']
+        ],
+        converges:'全部堆到 deadline 前赶工，周期拖到 5~6 周'
+      }
+    };
+  }
+
+  // ---------- render ----------
+  function render(){
+    const r=parseHash();
+    ensureSeed();
+    renderNav(r);
+    renderTopbar(r);
+    const view=$('#view');
+    if(r.name==='list'||!current()) view.innerHTML=viewList();
+    else view.innerHTML=viewAnalysis(current());
+    bindDynamic();
+    window.scrollTo(0,0);
+  }
+  function renderNav(r){
+    $$('#nav a').forEach(a=>{
+      const act=(r.name==='list'&&a.dataset.action==='go-list');
+      a.classList.toggle('active',!!act);
+    });
+  }
+  function renderTopbar(r){
+    const tb=$('#topbar'); const a=current();
+    if(r.name==='analysis'&&a){
+      tb.innerHTML='<input class="title-edit" id="title-edit" value="'+esc(a.name)+'">'+
+        '<span class="badge '+(STATUS[a.status]?STATUS[a.status].c:'empty')+'" id="status-badge">'+(STATUS[a.status]?STATUS[a.status].t:'待梳理')+'</span>'+
+        '<div class="spacer"></div>'+
+        '<button class="btn sm ghost" data-action="export-md">导出 MD</button>'+
+        '<button class="btn sm ghost" data-action="print">打印</button>'+
+        '<button class="icon-btn" data-action="open-api" title="AI 设置">⚙</button>'+
+        '<button class="btn sm danger" data-action="del-analysis">删除</button>';
+    } else {
+      tb.innerHTML='<h1>需求澄清与诊断工作台</h1><div class="spacer"></div>'+
+        '<button class="btn primary" data-action="new-analysis">＋ 新建分析</button>';
+    }
+  }
+  function viewList(){
+    const items=db.analyses.slice().sort((x,y)=> (y.updatedAt||'').localeCompare(x.updatedAt||''));
+    let h='<div class="list-head"><div><h2>分析列表</h2><div class="sub">客户聊一聊 / 填一填 → 勾选和自己有关的问题 → AI 出大白话报告</div></div></div>';
+    if(!items.length){
+      h+='<div class="empty-state"><div class="big">🗂</div><div>还没有分析。点「新建分析」，让客户开始聊。</div>'+
+         '<div style="margin-top:14px"><button class="btn primary" data-action="new-analysis">＋ 新建分析</button></div></div>';
+      return h;
+    }
+    h+='<div class="cards">';
+    items.forEach(a=>{
+      const bn=a.result&&a.result.bottlenecks?a.result.bottlenecks.length:0;
+      const st=STATUS[a.status]||STATUS.empty;
+      h+='<div class="card" data-action="go-analysis" data-id="'+a.id+'">'+
+        '<h3>'+esc(a.name)+'</h3>'+
+        '<div class="meta"><span class="badge '+st.c+'">'+st.t+'</span>'+
+        '<span>🧩 '+bn+' 个卡点</span><span>🕓 '+esc(a.updatedAt||'')+'</span></div></div>';
+    });
+    h+='</div>';
+    return h;
+  }
+
+  function viewAnalysis(a){
+    let h='<div class="work">';
+    // 左：客户的需求
+    h+='<div class="panel"><div class="ph"><h3>① 客户的需求</h3><span class="hint">客户自己聊 / 自己填</span></div><div class="pb">';
+    h+='<div class="tabs"><button class="'+(a._tab!=='form'?'active':'')+'" data-action="tab-chat">💬 和 AI 聊聊</button>'+
+       '<button class="'+(a._tab==='form'?'active':'')+'" data-action="tab-form">📝 自己填需求</button></div>';
+    if(a._tab==='form'){
+      h+='<div class="qbank">';
+      a.form.forEach((it,i)=>{
+        h+='<div class="qitem"><div class="q"><span class="n">'+(i+1)+'</span><span>'+esc(it.q)+'</span></div>'+
+           '<textarea data-bind="form" data-i="'+i+'" placeholder="用您自己的话说就行…">'+esc(it.a)+'</textarea></div>';
+      });
+      h+='</div>';
+      h+='<div class="chat-tip">💡 不用每条都填，想到哪写到哪。右边会根据您说的内容出问题清单。</div>';
+    } else {
+      h+=chatHTML(a);
+    }
+    h+='</div></div>';
+
+    // 右：四步
+    h+='<div class="panel"><div class="ph"><h3>② 梳理与诊断</h3><span class="hint">整合 → 出题 → 报告 → 画图确认</span></div><div class="pb">';
+    h+='<div class="hintbar">📌 用法：<b>①整合</b> AI 把聊天+表格合并成一份摘要（后面全用它）→ <b>②出题</b> 勾选并回答 → <b>③报告</b> 大白话梳理 → <b>④画图确认</b> 流程图+逻辑图，不满意用大白话说，改到您点头为止。</div>';
+    // 步骤大纲概览条
+    var outline=[
+      {n:1,t:'信息整合',done:(a.digest&&a.digest.text)},
+      {n:2,t:'问题清单',done:(a.questions&&a.questions.length)},
+      {n:3,t:'梳理报告',done:!!a.result},
+      {n:4,t:'流程 & 逻辑图',done:!!(a.diagrams&&a.diagrams.confirmed)}
+    ];
+    h+='<div class="outline-bar">';
+    outline.forEach(function(s,i){
+      h+='<div class="ob-step'+(s.done?' done':'')+'"><span class="ob-n">'+(s.done?'✓':s.n)+'</span><div class="ob-meta"><div class="ob-t">'+s.t+'</div><div class="ob-s">'+(s.done?'已完成':'待处理')+'</div></div></div>';
+      if(i<outline.length-1) h+='<span class="ob-line"></span>';
+    });
+    h+='</div>';
+    // step 1 信息整合
+    h+='<div class="step-block"><div class="sh"><span class="num">1</span><h4>信息整合（聊天 + 自填表 → 合并摘要）</h4>'+
+       '<span class="rb-sub">'+(a.digest&&a.digest.text?'<span class="step-done-tag">✓ 已整合</span>':'两路信息先合并，再往下走')+'</span></div><div class="sb">';
+    h+=digestHTML(a);
+    h+='</div></div>';
+    // step 2 问题清单
+    h+='<div class="step-block"><div class="sh"><span class="num">2</span><h4>确认问题清单</h4>'+
+       '<span class="rb-sub">'+(a.questions&&a.questions.length?'<span class="step-done-tag">✓ 已生成 · 勾选并回答</span>':'AI 根据整合摘要出题')+'</span></div><div class="sb">';
+    if(a.questions&&a.questions.length){
+      h+=questionsHTML(a);
+    } else {
+      h+='<div class="result-empty">还没有问题清单。<br>先完成第 1 步整合（或直接聊几句、填表格），然后点下面的按钮。</div>';
+    }
+    h+='<div class="analyze-bar"><button class="btn primary block" data-action="gen-questions">📋 '+(a.questions&&a.questions.length?'重新生成问题清单（会清空已勾选的回答）':'生成问题清单')+'</button></div>'+
+       '<div class="busy-sts" id="qs-sts"></div>';
+    h+='</div></div>';
+    // step 3 梳理报告
+    h+='<div class="step-block"><div class="sh"><span class="num">3</span><h4>梳理报告</h4>'+
+       '<span class="rb-sub">'+(a.result?'<span class="step-done-tag">✓ 已生成 · 可直接修改</span>':'AI 汇总成大白话报告')+'</span></div><div class="sb">';
+    if(a.result){
+      h+=resultHTML(a);
+      h+='<div class="analyze-bar"><button class="btn primary block" data-action="gen-summary">✨ 重新生成报告（覆盖）</button></div>';
+    } else {
+      h+='<div class="result-empty">还没有报告。<br>点下面的按钮，AI 会把需求 / 问题 / 难点 / 底层逻辑 / 卡点顺序写成一份大白话报告。</div>';
+      h+='<div class="analyze-bar"><button class="btn primary block" data-action="gen-summary">✨ 生成梳理报告</button></div>';
+    }
+    h+='<div class="busy-sts" id="sum-sts"></div>';
+    h+='</div></div>';
+    // step 4 流程图与逻辑图
+    h+='<div class="step-block"><div class="sh"><span class="num">4</span><h4>工作流程图 + 底层逻辑图</h4>'+
+       '<span class="rb-sub">'+(a.diagrams?(a.diagrams.confirmed?'<span class="step-done-tag">✓ 已确认</span>':'<span style="color:var(--warn);font-weight:700">⏳ 待您确认</span>'):'AI 画图 · 您来验收')+'</span></div><div class="sb">';
+    h+=diagramsHTML(a);
+    h+='</div></div>';
+    h+='</div></div>';
+    return h;
+  }
+
+  function chatHTML(a){
+    let h='<div class="chat-box" id="chat-box">';
+    if(!a.chat.length){
+      h+='<div class="msg sys">👇 点下方的按钮或直接打字，和 AI 聊聊您的情况。不用组织语言，大白话就行。</div>';
+    }
+    a.chat.forEach(m=>{ h+='<div class="msg '+(m.role==='user'?'user':(m.sys?'sys':'ai'))+'">'+esc(m.content)+'</div>'; });
+    h+='</div>';
+    h+='<div class="chat-input"><textarea id="chat-in" placeholder="在这里打字，回车或点发送…"></textarea>'+
+       '<button class="btn primary chat-send" data-action="chat-send">发送</button></div>';
+    h+=memoryHTML(a);
+    h+='<div class="chat-tip">💡 AI 记得这一轮的全部对话，并且每轮都会重新梳理「已确认 / 待确认 / 初步逻辑」。聊完还可以切到「📝 自己填需求」补充。</div>';
+    return h;
+  }
+
+  function questionsHTML(a){
+    let h='<div class="qtools"><button data-action="q-all">全选</button><button data-action="q-none">全不选</button>'+
+      '<span style="font-size:12px;color:var(--ink-3);margin-left:auto">勾选和自己有关的，简单答几句就行</span></div>';
+    let cat='';
+    a.questions.forEach(q=>{
+      if(q.cat!==cat){ cat=q.cat; h+='<div class="qgroup"><div class="gcat">'+esc(cat)+'</div></div>'; }
+      h+='<div class="qcheck '+(q.picked?'':'off')+'">'+
+        '<label class="qrow"><input type="checkbox" data-bind="qpick" data-id="'+q.id+'" '+(q.picked?'checked':'')+'>'+
+        '<div><div class="qtext">'+esc(q.text)+'</div>'+
+        '<div class="qwhy">为什么问这个：'+esc(q.why)+'</div></div></label>'+
+        (q.picked?'<div class="qans"><div class="ans-lb">您的回答（大白话就行）</div><textarea data-bind="qans" data-id="'+q.id+'" placeholder="想到什么写什么…">'+esc(q.answer)+'</textarea></div>':'')+
+        '</div>';
+    });
+    return h;
+  }
+
+  function resultHTML(a){
+    const r=a.result;
+    const blocks=[
+      {k:'needs',n:'1',t:'客户真正想要什么',sub:'需求'},
+      {k:'problems',n:'2',t:'要解决的具体问题',sub:'麻烦事'},
+      {k:'difficulties',n:'3',t:'难在哪',sub:'为什么一直没解决'}
+    ];
+    let h='';
+    blocks.forEach(b=>{
+      const arr=r[b.k]||[];
+      h+='<div class="rblock"><div class="rh"><span class="num">'+b.n+'</span><h4>'+b.t+'</h4>'+
+         '<span class="rb-sub">'+b.sub+'</span>'+
+         '<button class="regen" data-action="regen" data-block="'+b.k+'">↻ 重做这段</button></div>'+
+         '<div class="rb"><textarea class="list-edit" data-bind="'+b.k+'" placeholder="每条一行">'+esc(arr.join('\n'))+'</textarea></div></div>';
+    });
+    h+='<div class="rblock"><div class="rh"><span class="num">4</span><h4>这件事的底层逻辑</h4>'+
+       '<span class="rb-sub">怎么运转的、为什么卡</span>'+
+       '<button class="regen" data-action="regen" data-block="logic">↻ 重做这段</button></div>'+
+       '<div class="rb"><textarea class="list-edit logic-edit" data-bind="logic" placeholder="…">'+esc(r.logic||'')+'</textarea></div></div>';
+    h+='<div class="rblock"><div class="rh"><span class="num">5</span><h4>卡点排序</h4>'+
+       '<span class="rb-sub">先解决谁、后解决谁</span>'+
+       '<button class="regen" data-action="regen" data-block="bottlenecks">↻ 重做这段</button></div><div class="rb">';
+    (r.bottlenecks||[]).forEach((bn,i)=>{
+      h+='<div class="bn-row"><span class="bn-rank">'+(i+1)+'</span><div class="bn-fields">'+
+         '<div class="lbl">卡在哪</div><textarea data-bind="bn.point" data-i="'+i+'">'+esc(bn.point||'')+'</textarea>'+
+         '<div class="lbl">为什么卡 / 不解决会怎样</div><textarea data-bind="bn.why" data-i="'+i+'">'+esc(bn.why||'')+'</textarea>'+
+         '<div class="lbl">建议怎么破</div><textarea data-bind="bn.suggest" data-i="'+i+'">'+esc(bn.suggest||'')+'</textarea>'+
+         '<button class="bn-del" data-action="del-bn" data-i="'+i+'">删除此卡点</button>'+
+         '</div></div>';
+    });
+    h+='<button class="add-bn" data-action="add-bn">＋ 添加卡点</button></div></div>';
+    return h;
+  }
+
+  // ---------- SVG：工作流程图 ----------
+  function flowSVG(flow){
+    const steps=(flow&&flow.steps)||[]; if(!steps.length) return '<div class="result-empty">（流程数据为空）</div>';
+    const BW=148,BH=68,GAP=44,PAD=18,PER=5,ROWGAP=54,TOP=flow.title?36:6;
+    const rows=Math.ceil(steps.length/PER);
+    const cols=Math.min(steps.length,PER);
+    const W=PAD*2+cols*BW+(cols-1)*GAP;
+    const H=TOP+PAD+rows*BH+(rows-1)*ROWGAP+PAD;
+    let s='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;min-width:640px">';
+    s+='<defs><marker id="arwF" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--ink-3)"/></marker></defs>';
+    if(flow.title) s+='<text x="'+(W/2)+'" y="24" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">'+esc(flow.title)+'</text>';
+    const pos=steps.map((st,i)=>{
+      const r=Math.floor(i/PER), k=i%PER;
+      return {x:PAD+k*(BW+GAP), y:TOP+PAD+r*(BH+ROWGAP)};
+    });
+    steps.forEach((st,i)=>{
+      const p=pos[i], pain=!!st.pain;
+      s+='<rect x="'+p.x+'" y="'+p.y+'" width="'+BW+'" height="'+BH+'" rx="11" fill="'+(pain?'color-mix(in srgb,var(--danger) 8%,var(--panel))':'var(--panel)')+'" stroke="'+(pain?'var(--danger)':'var(--line-2)')+'" stroke-width="'+(pain?2:1.4)+'"/>';
+      if(pain){
+        s+='<rect x="'+(p.x+BW-36)+'" y="'+(p.y-9)+'" width="42" height="18" rx="9" fill="var(--danger)"/>';
+        s+='<text x="'+(p.x+BW-15)+'" y="'+(p.y+4)+'" text-anchor="middle" font-size="10.5" fill="#fff" font-weight="700">卡点</text>';
+      }
+      s+='<text x="'+(p.x+BW/2)+'" y="'+(p.y+24)+'" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--ink)">'+esc(st.name||'')+'</text>';
+      const sub=((st.who||'')+(st.who&&st.does?' · ':'')+(st.does||'')).slice(0,18);
+      s+='<text x="'+(p.x+BW/2)+'" y="'+(p.y+44)+'" text-anchor="middle" font-size="11" fill="var(--ink-2)">'+esc(sub)+'</text>';
+      if(st.note) s+='<text x="'+(p.x+BW/2)+'" y="'+(p.y+60)+'" text-anchor="middle" font-size="10" fill="var(--danger)">'+esc(String(st.note).slice(0,16))+'</text>';
+      const nx=i+1;
+      if(nx<steps.length && Math.floor(nx/PER)===Math.floor(i/PER)){
+        const np=pos[nx];
+        s+='<line x1="'+(p.x+BW+4)+'" y1="'+(p.y+BH/2)+'" x2="'+(np.x-6)+'" y2="'+(np.y+BH/2)+'" stroke="var(--ink-3)" stroke-width="1.6" marker-end="url(#arwF)"/>';
+      }
+    });
+    for(let r=1;r<rows;r++){
+      const li=r*PER-1; if(li>=steps.length) break;
+      const pl=pos[li], pf=pos[r*PER];
+      const midY=pl.y+BH+ROWGAP/2;
+      s+='<path d="M '+(pl.x+BW/2)+' '+(pl.y+BH+4)+' L '+(pl.x+BW/2)+' '+midY+' L '+(pf.x+BW/2)+' '+midY+' L '+(pf.x+BW/2)+' '+(pf.y-7)+'" fill="none" stroke="var(--ink-3)" stroke-width="1.6" marker-end="url(#arwF)"/>';
+    }
+    s+='</svg>';
+    return s;
+  }
+
+  // ---------- SVG：底层逻辑图 ----------
+  function logicSVG(logic){
+    if(!logic) return '<div class="result-empty">（逻辑数据为空）</div>';
+    const chains=(logic.chains||[]).filter(c=>Array.isArray(c)&&c.length>=2);
+    const NW=160,NH=42,NGAP=32,PAD=18,ROWGAP=16;
+    const maxLen=Math.max(2,...chains.map(c=>c.length),1);
+    const W=PAD*2+maxLen*NW+(maxLen-1)*NGAP;
+    const coreH=logic.core?56:8;
+    const convH=logic.converges?76:10;
+    const H=PAD+coreH+10+chains.length*(NH+ROWGAP)+8+convH+PAD;
+    let s='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;min-width:640px">';
+    s+='<defs><marker id="arwL" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--ink-3)"/></marker>'+
+       '<marker id="arwR" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--danger)"/></marker></defs>';
+    let y=PAD;
+    // core
+    if(logic.core){
+      const cw=Math.min(W-PAD*2, W-PAD*2);
+      s+='<rect x="'+PAD+'" y="'+y+'" width="'+(W-PAD*2)+'" height="44" rx="22" fill="color-mix(in srgb,var(--brand) 10%,var(--panel))" stroke="var(--brand)" stroke-width="1.4"/>';
+      const coreTxt=String(logic.core).slice(0,52);
+      s+='<text x="'+(W/2)+'" y="'+(y+19)+'" text-anchor="middle" font-size="12" font-weight="650" fill="var(--ink)">'+esc(coreTxt.slice(0,Math.ceil(coreTxt.length/2)))+'</text>';
+      if(coreTxt.length>26) s+='<text x="'+(W/2)+'" y="'+(y+36)+'" text-anchor="middle" font-size="12" font-weight="650" fill="var(--ink)">'+esc(coreTxt.slice(Math.ceil(coreTxt.length/2)))+'</text>';
+      y+=coreH;
+    }
+    // chains
+    const chainPos=[];
+    chains.forEach((c,ci)=>{
+      const cy=y+8+ci*(NH+ROWGAP);
+      const totalW=c.length*NW+(c.length-1)*NGAP;
+      const sx=(W-totalW)/2;
+      const nodes=c.map((t,ni)=>({x:sx+ni*(NW+NGAP),y:cy,t:String(t).slice(0,14)}));
+      chainPos.push(nodes);
+      nodes.forEach((n,ni)=>{
+        s+='<rect x="'+n.x+'" y="'+n.y+'" width="'+NW+'" height="'+NH+'" rx="9" fill="var(--panel-2)" stroke="var(--line-2)" stroke-width="1.3"/>';
+        const t=n.t;
+        s+='<text x="'+(n.x+NW/2)+'" y="'+(n.y+(t.length>9?17:26))+'" text-anchor="middle" font-size="11.5" fill="var(--ink)">'+esc(t.length>9?t.slice(0,9):t)+'</text>';
+        if(t.length>9) s+='<text x="'+(n.x+NW/2)+'" y="'+(n.y+33)+'" text-anchor="middle" font-size="11.5" fill="var(--ink)">'+esc(t.slice(9))+'</text>';
+        if(ni<nodes.length-1){
+          const nx2=nodes[ni+1];
+          s+='<line x1="'+(n.x+NW+3)+'" y1="'+(n.y+NH/2)+'" x2="'+(nx2.x-5)+'" y2="'+(nx2.y+NH/2)+'" stroke="var(--ink-3)" stroke-width="1.5" marker-end="url(#arwL)"/>';
+        }
+      });
+    });
+    // converge
+    if(logic.converges&&chains.length){
+      const convY=y+8+chains.length*(NH+ROWGAP)+4;
+      const cw=Math.min(W-PAD*2-40,560), cx=(W-cw)/2;
+      chains.forEach(nodes=>{
+        const last=nodes[nodes.length-1];
+        const lx=last.x+NW/2, ly=last.y+NH+3;
+        const tx=cx+cw/2, ty=convY-7;
+        const midY=(ly+ty)/2;
+        s+='<path d="M '+lx+' '+ly+' C '+lx+' '+midY+', '+tx+' '+midY+', '+tx+' '+ty+'" fill="none" stroke="var(--danger)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arwR)"/>';
+      });
+      s+='<rect x="'+cx+'" y="'+convY+'" width="'+cw+'" height="52" rx="11" fill="color-mix(in srgb,var(--danger) 10%,var(--panel))" stroke="var(--danger)" stroke-width="1.6"/>';
+      const ct=String(logic.converges).slice(0,44);
+      s+='<text x="'+(W/2)+'" y="'+(convY+22)+'" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--danger)">'+esc(ct.slice(0,Math.ceil(ct.length/2)))+'</text>';
+      if(ct.length>22) s+='<text x="'+(W/2)+'" y="'+(convY+40)+'" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--danger)">'+esc(ct.slice(Math.ceil(ct.length/2)))+'</text>';
+    }
+    s+='</svg>';
+    return s;
+  }
+
+  // ---------- 面板：信息整合 ----------
+  function digestHTML(a){
+    const d=a.digest;
+    let h='';
+    if(d&&d.text){
+      h+='<textarea class="list-edit logic-edit" data-bind="digest" placeholder="…">'+esc(d.text)+'</textarea>';
+      h+='<div class="chat-tip">🔗 这是 AI 把「💬 和AI聊聊」+「📝 自己填需求」两路信息<b>总结合并</b>后的统一摘要（更新于 '+new Date(d.ts).toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})+'），可直接改。后续出题、报告、画图都以这份为准。聊天或表格有更新后，点下面重新整合。</div>';
+    } else {
+      h+='<div class="result-empty">还没整合。点下面按钮，AI 会把 <b>💬 聊天内容</b> 和 <b>📝 自己填的需求</b> 总结合并成一份统一摘要。<br>后续出题、报告、画图全部以这份摘要为准。</div>';
+    }
+    h+='<div class="analyze-bar"><button class="btn primary block" data-action="gen-digest">🔗 '+(d&&d.text?'重新整合（聊天 + 表单）':'整合聊天 + 表单信息')+'</button></div>';
+    h+='<div class="busy-sts" id="dg-sts"></div>';
+    return h;
+  }
+
+  // ---------- 面板：流程图与逻辑图（含确认循环） ----------
+  function diagramsHTML(a){
+    const d=a.diagrams;
+    let h='';
+    if(!d){
+      h+='<div class="result-empty">还没有图。点下面按钮，AI 会画出两张图：<br><b>📐 工作流程图</b>（这条线路一步步怎么跑、哪步是卡点）<br><b>🧩 底层逻辑图</b>（这件事为什么会卡成这样、因果链条）</div>';
+      h+='<div class="analyze-bar"><button class="btn primary block" data-action="gen-diagrams">🗺 生成流程图与底层逻辑图</button></div>';
+    } else {
+      const conf=!!d.confirmed;
+      h+='<div class="diag-status '+(conf?'ok':'wait')+'">'+(conf
+        ?'✅ 您已确认这两张图没问题。要改随时点「重新修改」。'
+        :'⏳ 请确认：这两张图画的对不对？<b>有问题不用改代码，直接在下方用大白话说</b>，AI 马上重画，直到您点头为止。')+'</div>';
+      h+='<div class="diag-wrap"><div class="diag-title">📐 工作流程图 —— 这条线路怎么跑</div>'+flowSVG(d.flow)+'</div>';
+      h+='<div class="diag-wrap"><div class="diag-title">🧩 项目运行底层逻辑图 —— 为什么会卡成这样</div>'+logicSVG(d.logic)+'</div>';
+      if(!conf){
+        if(d.history&&d.history.length){
+          h+='<div class="diag-hist"><b>🗣 您提过的修改意见（已改）</b>'+d.history.map(x=>'<div>· '+esc(x.text)+'</div>').join('')+'</div>';
+        }
+        h+='<div class="diag-confirm"><textarea id="diag-fb" placeholder="哪里不对？直接用大白话说，比如：「法务那步不是卡在排队，是卡在材料不全」「漏了报价这个环节」…"></textarea>';
+        h+='<div class="diag-btns"><button class="btn primary" data-action="diag-feedback">🗣 提交意见，AI 重画</button>'+
+           '<button class="btn" data-action="diag-confirm">✅ 没问题，确认通过</button></div></div>';
+      } else {
+        h+='<div class="diag-btns"><button class="btn ghost" data-action="diag-reopen">✏️ 重新修改</button></div>';
+      }
+      h+='<div class="analyze-bar"><button class="btn ghost block" data-action="gen-diagrams">🗺 整体重新生成两张图（覆盖当前）</button></div>';
+    }
+    h+='<div class="busy-sts" id="diag-sts"></div>';
+    return h;
+  }
+
+  function bindDynamic(){
+    const te=$('#title-edit');
+    if(te) te.addEventListener('input',()=>{ const a=current(); if(a){ a.name=te.value; a.updatedAt=today(); save(); } });
+    const cb=$('#chat-box');
+    if(cb) cb.scrollTop=cb.scrollHeight;
+  }
+
+  function setStatus(a,st){ a.status=st; const b=$('#status-badge'); if(b){ b.className='badge '+(STATUS[st]?STATUS[st].c:'empty'); b.textContent=STATUS[st]?STATUS[st].t:'待梳理'; } }
+
+  function refreshRight(a){
+    const view=$('#view');
+    if(!view) return;
+    view.innerHTML=viewAnalysis(a);
+    bindDynamic();
+  }
+
+  // ---------- chat ----------
+  let chatBusy=false;
+  async function chatSend(a){
+    if(chatBusy) return;
+    const inp=$('#chat-in');
+    if(!inp) return;
+    const text=(inp.value||'').trim();
+    if(!text){ toast('先输入点内容'); return; }
+    a.chat.push({role:'user',content:text});
+    a.updatedAt=today(); save();
+    inp.value='';
+    refreshRight(a);
+    chatBusy=true;
+    const box=$('#chat-box');
+    if(box){ const m=document.createElement('div'); m.className='msg ai'; m.id='chat-loading'; m.textContent='…'; box.appendChild(m); box.scrollTop=box.scrollHeight; }
+    try{
+      let reply;
+      if(MOCK){
+        await new Promise(r=>setTimeout(r,400));
+        reply=mockChatReply(a);
+      } else if(!api.key||!api.baseUrl){
+        // 不再假装会聊：明确告知需要配置真 API
+        const ld2=$('#chat-loading'); if(ld2) ld2.remove();
+        a.chat.push({role:'assistant',sys:true,content:'（我需要接入真正的大模型才能思考和记住全部对话——现在是演示脚本，只会重复固定话术。点右上角 ⚙ 填入 API Key（如 DeepSeek），配置后我就有完整的对话记忆和判断力。）'});
+        save(); refreshRight(a); openApi(true); chatBusy=false; return;
+      } else {
+        // 把【全部】对话历史发给模型——AI 记住这一轮的所有往来
+        const msgs=[{role:'system',content:CHAT_SYS()}];
+        a.chat.forEach(m=>{ if(m.role==='user'||m.role==='assistant') msgs.push({role:m.role,content:m.content}); });
+        reply=await callMsgs(msgs);
+      }
+      // 移除 loading
+      const ld=$('#chat-loading'); if(ld) ld.remove();
+      if(!reply||!String(reply).trim()) reply='（AI 没有回复，请重试或检查 AI 设置）';
+      a.chat.push({role:'assistant',content:String(reply).trim()});
+      a.updatedAt=today(); save();
+      refreshRight(a);
+      // 每轮对话后：AI 基于全部对话更新记忆（已确认/待确认/初步逻辑）
+      updateMemory(a);
+    }catch(e){
+      const ld=$('#chat-loading'); if(ld) ld.remove();
+      a.chat.push({role:'assistant',content:'（出错了：'+(e.message||e)+'。可在右上角 ⚙ 检查 AI 设置，或稍后重试。）'});
+      save(); refreshRight(a);
+    }finally{ chatBusy=false; }
+  }
+
+  // ---------- step1: questions ----------
+  async function genQuestions(a){
+    const btn=$('[data-action="gen-questions"]'); const sts=$('#qs-sts');
+    if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> AI 正在出题…'; }
+    if(sts) sts.textContent='AI 正在根据左侧内容生成问题清单…';
+    try{
+      let groups;
+      if(MOCK){ await new Promise(r=>setTimeout(r,500)); groups=mockQuestions(); }
+      else{
+        const txt=await callMsgs([{role:'system',content:QLIST_SYS()},{role:'user',content:materialOf(a)+'\n\n请按系统要求输出 JSON。'}]);
+        const o=extractJSON(txt);
+        if(!o||!Array.isArray(o.groups)) throw new Error('AI 返回无法解析，请重试');
+        groups=[];
+        o.groups.forEach(g=>{ (g.questions||[]).forEach(q=>{ groups.push({id:uid('q'),cat:g.cat||'其他',text:q.text||'',why:q.why||'',picked:false,answer:''}); }); });
+        if(!groups.length) throw new Error('AI 没有生成有效问题，请重试');
+      }
+      a.questions=groups; a.updatedAt=today();
+      setStatus(a, a.result?'edited':'mid');
+      save(); refreshRight(a);
+      toast('问题清单已生成，勾选和自己有关的并回答');
+    }catch(e){
+      if(e.message==='NOKEY'){ openApi(true); }
+      else toast('生成失败：'+(e.message||e));
+      if(btn){ btn.disabled=false; btn.innerHTML='📋 生成问题清单'; }
+      if(sts) sts.textContent='';
+    }
+  }
+
+  // ---------- step2: summary ----------
+  async function genSummary(a, block){
+    const btns=$$('[data-action="gen-summary"]');
+    const sts=$('#sum-sts');
+    btns.forEach(b=>{ b.disabled=true; b.innerHTML='<span class="spinner"></span> AI 正在写报告…'; });
+    if(sts) sts.textContent='AI 正在把所有信息汇总成大白话报告…';
+    try{
+      let out;
+      if(MOCK){ await new Promise(r=>setTimeout(r,600)); out=mockSummary(a); }
+      else{
+        const sys=SUMMARY_SYS();
+        if(block){
+          const map={needs:'needs 数组',problems:'problems 数组',difficulties:'difficulties 数组',logic:'logic 字符串',bottlenecks:'bottlenecks 数组'};
+          const txt=await callMsgs([{role:'system',content:sys},{role:'user',content:materialOf(a)+'\n\n只输出 '+map[block]+' 对应的 JSON 字段（仍是合法 JSON 对象，只含该字段）。'}]);
+          const o=extractJSON(txt); if(!o||!(block in o)) throw new Error('解析失败'); out=o;
+        } else {
+          const txt=await callMsgs([{role:'system',content:sys},{role:'user',content:materialOf(a)+'\n\n请按系统要求输出 JSON。'}]);
+          out=extractJSON(txt);
+          if(!out) throw new Error('AI 返回无法解析，请重试');
+        }
+      }
+      if(!a.result) a.result={needs:[],problems:[],difficulties:[],logic:'',bottlenecks:[]};
+      if(block){ a.result[block]=out[block]; setStatus(a,'edited'); }
+      else{
+        if(out.needs) a.result.needs=out.needs;
+        if(out.problems) a.result.problems=out.problems;
+        if(out.difficulties) a.result.difficulties=out.difficulties;
+        if(out.logic) a.result.logic=out.logic;
+        if(out.bottlenecks) a.result.bottlenecks=out.bottlenecks;
+        setStatus(a,'done');
+      }
+      a.updatedAt=today();
+      save(); refreshRight(a);
+      toast('报告已生成，可以直接改');
+    }catch(e){
+      btns.forEach(b=>{ b.disabled=false; b.innerHTML=a.result?'✨ 重新生成报告（覆盖）':'✨ 生成梳理报告'; });
+      if(sts) sts.textContent='';
+      if(e.message==='NOKEY'){ openApi(true); }
+      else toast('生成失败：'+(e.message||e));
+    }
+  }
+
+  // ---------- step1: 信息整合（聊天+表单 → 合并摘要） ----------
+  async function genDigest(a){
+    const btn=$('[data-action="gen-digest"]'); const sts=$('#dg-sts');
+    if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> AI 正在整合两路信息…'; }
+    if(sts) sts.textContent='AI 正在把「聊天记录」和「自填需求表」总结合并…';
+    try{
+      let out;
+      const raw=rawMaterialOf(a);
+      if(!raw){ toast('客户还没有提供任何信息：先和 AI 聊几句、或填一下需求表'); throw new Error('EMPTY'); }
+      if(MOCK){ await new Promise(r=>setTimeout(r,500)); out=mockDigest(a); }
+      else{
+        const txt=await callMsgs([{role:'system',content:MERGE_SYS()},{role:'user',content:raw+'\n\n请按系统要求输出 JSON。'}]);
+        out=extractJSON(txt);
+        if(!out||!Array.isArray(out.summary)) throw new Error('AI 返回无法解析，请重试');
+      }
+      let text=out.summary.map(x=>'· '+x).join('\n');
+      if(Array.isArray(out.gaps)&&out.gaps.length) text+='\n\n【信息缺口，待补】\n'+out.gaps.map(x=>'· '+x).join('\n');
+      a.digest={text,ts:Date.now(),gaps:Array.isArray(out.gaps)?out.gaps:[]};
+      a.updatedAt=today();
+      save(); refreshRight(a);
+      toast('信息已整合：聊天 + 表单合并成一份摘要，后续环节都以它为准');
+    }catch(e){
+      if(e.message!=='EMPTY'&&e.message!=='NOKEY') toast('整合失败：'+(e.message||e));
+      if(e.message==='NOKEY'){ openApi(true); }
+    }
+    if(btn){ btn.disabled=false; btn.innerHTML=a.digest&&a.digest.text?'🔗 重新整合（聊天 + 表单）':'🔗 整合聊天 + 表单信息'; }
+    if(sts) sts.textContent='';
+  }
+
+  // ---------- step4: 流程图与逻辑图 ----------
+  function validDiagrams(o){
+    return o&&o.flow&&Array.isArray(o.flow.steps)&&o.flow.steps.length&&o.logic;
+  }
+  async function genDiagrams(a){
+    const btn=$('[data-action="gen-diagrams"]'); const sts=$('#diag-sts');
+    if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> AI 正在画图…'; }
+    if(sts) sts.textContent='AI 正在根据整合摘要画「工作流程图」和「底层逻辑图」…';
+    try{
+      let out;
+      if(MOCK){ await new Promise(r=>setTimeout(r,700)); out=mockDiagrams(); }
+      else{
+        const txt=await callMsgs([{role:'system',content:DIAGRAM_SYS()},{role:'user',content:materialOf(a)+'\n\n请按系统要求输出 JSON。'}]);
+        out=extractJSON(txt);
+        if(!validDiagrams(out)) throw new Error('AI 返回的图数据无法解析，请重试');
+      }
+      a.diagrams={flow:out.flow,logic:out.logic,confirmed:false,history:[],ts:Date.now()};
+      a.updatedAt=today();
+      save(); refreshRight(a);
+      toast('两张图已生成，请确认：有问题直接用大白话说，AI 马上改');
+    }catch(e){
+      if(e.message==='NOKEY'){ openApi(true); }
+      else toast('画图失败：'+(e.message||e));
+      if(btn){ btn.disabled=false; btn.innerHTML=a.diagrams?'🗺 整体重新生成两张图（覆盖当前）':'🗺 生成流程图与底层逻辑图'; }
+      if(sts) sts.textContent='';
+    }
+  }
+  async function reviseDiagrams(a){
+    const d=a.diagrams; if(!d) return;
+    const fb=$('#diag-fb'); const sts=$('#diag-sts');
+    const text=fb?(fb.value||'').trim():'';
+    if(!text){ toast('先在输入框里用大白话说说哪里不对'); if(fb) fb.focus(); return; }
+    const btn=$('[data-action="diag-feedback"]');
+    if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> AI 正在按您的意见重画…'; }
+    if(sts) sts.textContent='AI 正在按您的意见修改两张图…';
+    try{
+      let out;
+      if(MOCK){ await new Promise(r=>setTimeout(r,600)); out={flow:d.flow,logic:d.logic}; }
+      else{
+        const payload='【当前的图（JSON）】\n'+JSON.stringify({flow:d.flow,logic:d.logic})+
+          '\n\n【历史修改意见（已改过）】\n'+(d.history||[]).map(x=>'· '+x.text).join('\n')+
+          '\n\n【客户本次的修改意见】\n'+text+'\n\n请按系统要求输出修改后的完整 JSON。';
+        const txt=await callMsgs([{role:'system',content:DIAGRAM_REVISE_SYS()},{role:'user',content:payload}]);
+        out=extractJSON(txt);
+        if(!validDiagrams(out)) throw new Error('AI 返回的图数据无法解析，请重试');
+      }
+      d.flow=out.flow; d.logic=out.logic;
+      d.history=(d.history||[]).concat([{text,ts:Date.now()}]);
+      d.confirmed=false; d.ts=Date.now();
+      a.updatedAt=today();
+      save(); refreshRight(a);
+      toast(MOCK?'（演示）已按您的意见重画，请再确认':'已按您的意见重画，请再确认；没问题就点「确认通过」');
+    }catch(e){
+      if(e.message==='NOKEY'){ openApi(true); }
+      else toast('修改失败：'+(e.message||e));
+      if(btn){ btn.disabled=false; btn.innerHTML='🗣 提交意见，AI 重画'; }
+      if(sts) sts.textContent='';
+    }
+  }
+  function openApi(focusErr){
+    const m=$('#modal');
+    m.innerHTML='<div class="mh">AI 接口设置 <button class="x" data-action="close-modal">×</button></div>'+
+      '<div class="mb">'+
+      '<div class="hintbar">🔌 支持 OpenAI 兼容接口（DeepSeek / 豆包 / OpenAI 等）。Key 只存在你本机浏览器。</div>'+
+      '<div class="field"><label>接口地址 (Base URL)</label><input type="text" id="api-url" value="'+esc(api.baseUrl||'https://api.deepseek.com/v1')+'"><div class="help">DeepSeek 填 https://api.deepseek.com/v1</div></div>'+
+      '<div class="field"><label>模型名</label><input type="text" id="api-model" value="'+esc(api.model||'deepseek-chat')+'"></div>'+
+      '<div class="field"><label>API Key</label><input type="text" id="api-key" value="'+esc(api.key||'')+'" placeholder="sk-..."><div class="help">填入后 AI 才有真正的对话记忆与思考能力；不填时聊天只是固定脚本的演示模式</div></div>'+
+      '<div class="apistat" id="api-stat"></div>'+
+      '</div>'+
+      '<div class="mf"><button class="btn ghost" data-action="test-api">测试连接</button><button class="btn primary" data-action="save-api">保存</button></div>';
+    $('#mask').classList.add('show');
+    if(focusErr){ const s=$('#api-stat'); if(s){ s.className='apistat err'; s.textContent='⚠ 请先填写 API Key 与接口地址，或留空使用演示模式。'; } }
+  }
+  async function testApi(){
+    const url=$('#api-url').value.trim(), key=$('#api-key').value.trim(), model=$('#api-model').value.trim()||'deepseek-chat';
+    const s=$('#api-stat'); s.className='apistat'; s.textContent='测试中…';
+    try{
+      const res=await fetch(url.replace(/\/+$/,'')+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:model,messages:[{role:'user',content:'ping'}],max_tokens:5})});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      s.className='apistat ok'; s.textContent='✅ 连接成功';
+    }catch(e){ s.className='apistat err'; s.textContent='❌ '+e.message+'（若 CORS 报错，请用本地服务器打开）'; }
+  }
+  function saveApiModal(){
+    api.baseUrl=$('#api-url').value.trim();
+    api.model=$('#api-model').value.trim();
+    api.key=$('#api-key').value.trim();
+    saveApi();
+    closeModal();
+    toast(api.key?'AI 已配置，聊天和梳理都可以用了':'已保存，当前为演示模式');
+  }
+
+  // ---------- modals: new / confirm ----------
+  function newAnalysisModal(){
+    const m=$('#modal');
+    m.innerHTML='<div class="mh">新建分析 <button class="x" data-action="close-modal">×</button></div>'+
+      '<div class="mb"><div class="field"><label>给这次分析起个名</label><input type="text" id="na-name" placeholder="如：XX客户需求诊断" value="未命名分析"></div>'+
+      '<div class="help" style="font-size:12px;color:var(--ink-3)">建好后：客户在左边聊天 / 填表 → 右边勾问题答问题 → AI 出大白话报告。</div></div>'+
+      '<div class="mf"><button class="btn ghost" data-action="close-modal">取消</button><button class="btn primary" data-action="create-analysis">创建</button></div>';
+    $('#mask').classList.add('show');
+    setTimeout(()=>{ const i=$('#na-name'); if(i) i.select(); },50);
+  }
+  function createAnalysis(){
+    const name=($('#na-name').value||'未命名分析').trim();
+    const a={id:uid(),name,createdAt:today(),updatedAt:today(),status:'empty',
+      _tab:'chat',chat:[],form:FORM_QS.map(q=>({q,a:''})),questions:null,result:null,digest:null,diagrams:null};
+    db.analyses.push(a); save(); closeModal(); go('#/a/'+a.id);
+  }
+  function confirmDel(a){
+    const m=$('#modal');
+    m.innerHTML='<div class="mh">删除分析 <button class="x" data-action="close-modal">×</button></div>'+
+      '<div class="mb">确定删除「'+esc(a.name)+'」？此操作不可恢复。</div>'+
+      '<div class="mf"><button class="btn ghost" data-action="close-modal">取消</button><button class="btn danger" data-action="do-del">删除</button></div>';
+    $('#mask').classList.add('show');
+  }
+  function closeModal(){ $('#mask').classList.remove('show'); $('#modal').innerHTML=''; }
+
+  // ---------- export ----------
+  function exportMD(a){
+    if(!a.result){ toast('还没有可导出的报告，先完成第 2 步'); return; }
+    const r=a.result; const L=[];
+    L.push('# 需求诊断：'+a.name);
+    L.push('');
+    L.push('> 更新：'+a.updatedAt+'　状态：'+(STATUS[a.status]?STATUS[a.status].t:'')+'\n');
+    L.push('## 一、客户真正想要什么'); (r.needs||[]).forEach(x=>L.push('- '+x)); L.push('');
+    L.push('## 二、要解决的具体问题'); (r.problems||[]).forEach(x=>L.push('- '+x)); L.push('');
+    L.push('## 三、难在哪'); (r.difficulties||[]).forEach(x=>L.push('- '+x)); L.push('');
+    L.push('## 四、这件事的底层逻辑'); L.push(''); L.push(r.logic||''); L.push('');
+    L.push('## 五、卡点排序（先解决谁）'); (r.bottlenecks||[]).forEach((b,i)=>{ L.push((i+1)+'. **'+(b.point||'')+'**'); if(b.why)L.push('   - 为什么卡：'+b.why); if(b.suggest)L.push('   - 建议：'+b.suggest); });
+    if(a.diagrams){
+      const d=a.diagrams;
+      L.push(''); L.push('## 六、工作流程图'+(d.confirmed?'（已确认）':'（待确认）'));
+      if(d.flow){ if(d.flow.title)L.push('**'+d.flow.title+'**'); (d.flow.steps||[]).forEach((s,i)=>{ L.push((i+1)+'. **'+(s.name||'')+'**（'+(s.who||'')+'）：'+(s.does||'')+(s.pain?' ⚠卡点：'+(s.note||''):'')); }); }
+      L.push(''); L.push('## 七、底层逻辑图'+(d.confirmed?'（已确认）':'（待确认）'));
+      if(d.logic){ if(d.logic.core)L.push('> 核心逻辑：'+d.logic.core); (d.logic.chains||[]).forEach(c=>{ L.push('- '+c.join(' → ')); }); if(d.logic.converges)L.push('\n**最终后果：'+d.logic.converges+'**'); }
+      if(d.history&&d.history.length){ L.push(''); L.push('### 修改记录'); d.history.forEach(x=>L.push('- '+x.text)); }
+    }
+    if(a.digest&&a.digest.text){ L.push(''); L.push('## 附：信息整合摘要（聊天+自填表合并）'); L.push(a.digest.text); }
+    const picked=a.questions?a.questions.filter(q=>q.picked&&q.answer&&q.answer.trim()):[];
+    if(picked.length){
+      L.push(''); L.push('## 附：客户回答的确认问题');
+      picked.forEach(q=>L.push('- **'+q.text+'**：'+q.answer.trim()));
+    }
+    const md=L.join('\n');
+    copyText(md); toast('已复制 Markdown 到剪贴板');
+  }
+  function copyText(t){
+    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).catch(()=>fallbackCopy(t)); }
+    else fallbackCopy(t);
+  }
+  function fallbackCopy(t){ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(e){} document.body.removeChild(ta); }
+
+  function toggleTheme(){ db.theme = (db.theme==='dark')?'light':'dark'; document.documentElement.setAttribute('data-theme',db.theme); save(); }
+
+  // ---------- global events ----------
+  document.addEventListener('click',e=>{
+    const el=e.target.closest('[data-action]'); if(!el) return;
+    const act=el.dataset.action;
+    const a=current();
+    switch(act){
+      case 'go-list': go('#/'); break;
+      case 'go-analysis': go('#/a/'+el.dataset.id); break;
+      case 'new-analysis': newAnalysisModal(); break;
+      case 'create-analysis': createAnalysis(); break;
+      case 'open-api': openApi(false); break;
+      case 'save-api': saveApiModal(); break;
+      case 'test-api': testApi(); break;
+      case 'close-modal': case 'mask-close': closeModal(); break;
+      case 'toggle-theme': toggleTheme(); break;
+      case 'chat-send': if(a) chatSend(a); break;
+      case 'mem-regen': if(a){ toast('AI 正在重新梳理全部对话…'); updateMemory(a); } break;
+      case 'gen-questions': if(a) genQuestions(a); break;
+      case 'gen-summary': if(a) genSummary(a); break;
+      case 'gen-digest': if(a) genDigest(a); break;
+      case 'gen-diagrams': if(a) genDiagrams(a); break;
+      case 'diag-feedback': if(a) reviseDiagrams(a); break;
+      case 'diag-confirm': {
+        if(a&&a.diagrams){ a.diagrams.confirmed=true; save(); refreshRight(a); toast('已确认通过 ✅ 这两张图定稿了'); }
+        break;
+      }
+      case 'diag-reopen': {
+        if(a&&a.diagrams){ a.diagrams.confirmed=false; save(); refreshRight(a); }
+        break;
+      }
+      case 'regen': if(a&&a.result) genSummary(a, el.dataset.block); break;
+      case 'tab-chat': if(a){a._tab='chat'; save(); render();} break;
+      case 'tab-form': if(a){a._tab='form'; save(); render();} break;
+      case 'q-all': case 'q-none': {
+        if(!a||!a.questions) break;
+        const on=(act==='q-all');
+        a.questions.forEach(q=>q.picked=on);
+        save(); refreshRight(a); break;
+      }
+      case 'add-bn': if(a&&a.result){ a.result.bottlenecks.push({point:'',why:'',suggest:''}); a.status='edited'; save(); refreshRight(a); toast('已添加空卡点'); } break;
+      case 'del-bn': if(a&&a.result){ a.result.bottlenecks.splice(+el.dataset.i,1); a.status='edited'; save(); refreshRight(a); } break;
+      case 'del-analysis': if(a) confirmDel(a); break;
+      case 'do-del': { const id=a.id; db.analyses=db.analyses.filter(x=>x.id!==id); save(); closeModal(); go('#/'); toast('已删除'); break; }
+      case 'export-md': if(a) exportMD(a); break;
+      case 'print': window.print(); break;
+    }
+  });
+  $('#mask').addEventListener('click',e=>{ if(e.target.id==='mask') closeModal(); });
+
+  // 聊天输入框：Ctrl/Cmd+Enter 或 Enter 发送
+  document.addEventListener('keydown',e=>{
+    if(e.target&&e.target.id==='chat-in'&&e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); const a=current(); if(a) chatSend(a); }
+  });
+
+  document.addEventListener('change',e=>{
+    const t=e.target; const b=t.dataset.bind;
+    if(b==='qpick'){
+      const a=current(); if(!a||!a.questions) return;
+      const q=a.questions.find(x=>x.id===t.dataset.id); if(!q) return;
+      q.picked=t.checked;
+      a.updatedAt=today(); save(); refreshRight(a);
+    }
+  });
+
+  document.addEventListener('input',e=>{
+    const t=e.target; const b=t.dataset.bind; if(!b) return;
+    const a=current(); if(!a) return;
+    if(b==='form'){ a.form[+t.dataset.i].a=t.value; }
+    else if(b==='digest'){ if(a.digest) a.digest.text=t.value; }
+    else if(b==='qans'){ const q=a.questions&&a.questions.find(x=>x.id===t.dataset.id); if(q) q.answer=t.value; else return; }
+    else if(b==='needs'||b==='problems'||b==='difficulties'){ if(a.result) a.result[b]=t.value.split('\n').map(s=>s.trim()).filter(Boolean); }
+    else if(b==='logic'){ if(a.result) a.result.logic=t.value; }
+    else if(b && b.indexOf('bn.')===0){ if(a.result){ const f=b.slice(3); a.result.bottlenecks[+t.dataset.i][f]=t.value; } }
+    else return;
+    a.status = a.result ? (a.status==='done'?'edited':a.status) : a.status;
+    a.updatedAt=today(); save();
+    const sb=$('#status-badge'); if(sb && a.status==='edited'){ sb.className='badge edited'; sb.textContent='已编辑'; }
+  });
+
+  window.addEventListener('hashchange',render);
+
+  // ---------- init ----------
+  document.documentElement.setAttribute('data-theme', db.theme||'light');
+  if(!location.hash) location.hash='#/';
+  render();
+})();
+</script>
+</body>
+</html>
